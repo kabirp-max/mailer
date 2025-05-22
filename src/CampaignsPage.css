@@ -1,0 +1,61 @@
+.campaigns-page {
+  padding: 30px;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f9f9f9;
+  min-height: 100vh;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.loading,
+.no-data {
+  font-size: 16px;
+  color: #666;
+}
+
+.table-container {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.campaigns-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+.campaigns-table thead {
+  background-color: #f0f0f0;
+}
+
+.campaigns-table th,
+.campaigns-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+
+.campaigns-table th {
+  font-weight: 600;
+  color: #444;
+}
+
+.campaigns-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.campaign-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.campaign-link:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,53 @@
+/* Wrapper container */
+.grapesjs-editor {
+  display: flex;
+  height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Block panel styling */
+#blocks {
+  width: 220px;
+  background-color: #f0f0f0;
+  padding: 10px;
+  overflow-y: auto;
+  border-right: 1px solid #ccc;
+}
+
+/* Make blocks look more distinct */
+#gjs .gjs-block {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: grab;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+#gjs .gjs-block:hover {
+  background-color: #e6f2ff;
+}
+
+/* Editor area (canvas) */
+.grapesjs-editor > div:not(#blocks) {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Export button style */
+.btn-show-json {
+  background-color: #007bff;
+  color: #fff !important;
+  padding: 6px 12px;
+  margin: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-show-json:hover {
+  background-color: #0056b3;
+}

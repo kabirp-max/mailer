@@ -1,62 +1,114 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import './EmailOpens.css';
 
 const EmailOpens = () => {
   const [opens, setOpens] = useState([]);
-  const [loading, setLoading] = useState(true);  // For loading state
-  const [error, setError] = useState(null);  // For error handling
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
- useEffect(() => {
-  fetch('http://localhost:4000/api/opens')
-    .then((res) => res.json())
-    .then((data) => {
-      if (Array.isArray(data)) {
-        setOpens(data);
-      } else {
-        console.error('Expected array, got:', data);
-        setOpens([]);
-      }
-    })
-    .catch((err) => {
-      console.error('Failed to fetch tracking data:', err);
-      setOpens([]);
-    });
-}, []);
+  useEffect(() => {
+    fetch('https://track.techresearchcenter.com/api/opens')
+      .then((res) => res.json())
+      .then((data) => {
+        setLoading(false);
+        if (Array.isArray(data)) {
+          const seen = new Set();
+          const filtered = data.filter((entry) => {
+            const key = `${entry.id}_${entry.openTime}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setOpens(filtered);
+        } else {
+          console.error('Expected array, got:', data);
+          setError('Unexpected response format.');
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch tracking data:', err);
+        setError('Failed to fetch email open data.');
+        setLoading(false);
+      });
+  }, []);
 
+  // Function to handle Excel download
+  const handleDownload = () => {
+    if (opens.length === 0) return;
 
-  if (loading) {
-    return <div>Loading...</div>; // You can improve this with a spinner or other loading indicators
-  }
+    // Prepare data for worksheet
+    const dataForExcel = opens.map((open) => ({
+      Email: open.email,
+      Subject: open.subject,
+      'Sent Time': new Date(open.sentTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      'Opened At': new Date(open.openTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      IP: open.ip,
+      'Event ID': open.id,
+    }));
 
-  if (error) {
-    return <div>{error}</div>; // Display error if any
-  }
+    // Create a new workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'EmailOpens');
+
+    // Write workbook and create a Blob for download
+    const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+
+    // Use file-saver to save the file
+    saveAs(blob, 'email-opens-data.xlsx');
+  };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Email Open Events</h2>
-      {opens.length === 0 ? (
-        <p>No email opens data available.</p>  // Display if there are no records
-      ) : (
-        <table className="min-w-full border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2">User ID</th>
-              <th className="border p-2">IP Address</th>
-              <th className="border p-2">User Agent</th>
-              <th className="border p-2">Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {opens.map((open, index) => (
-              <tr key={index} className="border-t">
-                <td className="border p-2">{open.id}</td>
-                <td className="border p-2">{open.ip}</td>
-                <td className="border p-2">{open.ua}</td>
-                <td className="border p-2">{open.time}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="email-opens-container">
+      <h2 className="email-opens-title">📬 Email Open Events</h2>
+
+      <button
+        onClick={handleDownload}
+        disabled={opens.length === 0}
+        className="email-opens-download-btn"
+      >
+        Download Excel
+      </button>
+
+      {loading && <p className="email-opens-loading">Loading data...</p>}
+      {error && <p className="email-opens-error">{error}</p>}
+
+      {!loading && !error && (
+        <>
+          {opens.length === 0 ? (
+            <p className="email-opens-empty">No email open data available.</p>
+          ) : (
+            <div className="email-opens-table-wrapper">
+              <table className="email-opens-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Subject</th>
+                    <th>Sent Time</th>
+                    <th>Opened At</th>
+                    <th>IP</th>
+                    <th>Event ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {opens.map((open, index) => (
+                    <tr key={index}>
+                      <td>{open.email}</td>
+                      <td>{open.subject}</td>
+                      <td>{new Date(open.sentTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                      <td>{new Date(open.openTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+                      <td>{open.ip}</td>
+                      <td>{open.id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

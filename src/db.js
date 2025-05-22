@@ -1,30 +1,27 @@
-const mysql = require('mysql2');
+// db.js
+const mysql = require('mysql2/promise');
 
-// Create a connection to the MySQL server
-const connection = mysql.createConnection({
-  host: 'localhost',  // Your MySQL host
-  user: 'root',       // Your MySQL username
-  password: 'Organics5!',  // Your MySQL password
-  database: 'contacts', // Your database name (can be any existing database)
+const pool = mysql.createPool({
+  host: '75.119.141.210',
+  user: 'nodeuser',
+  password: 'Organics5!',
+  database: 'mailer',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-// Connect to the MySQL server
-connection.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the database: ' + err.stack);
-    return;
+// Optional: Test connection and log connection ID
+async function testConnection() {
+  try {
+    const connection = await pool.getConnection();
+    console.log('Connected as ID ' + connection.threadId);
+    connection.release();
+  } catch (err) {
+    console.error('DB connection failed:', err);
   }
-  console.log('Connected to MySQL server as id ' + connection.threadId);
+}
 
-  // Optionally, run a simple query to test the connection
-  connection.query('SELECT 1 + 1 AS solution', (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      return;
-    }
-    console.log('Query result: ', results[0].solution); // Should print: 2
-  });
+testConnection();
 
-  // Close the connection
-  connection.end();
-});
+module.exports = pool;

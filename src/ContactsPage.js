@@ -1,97 +1,223 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import "./ContactsPage.css";
 
-const ContactsPage = () => {
-  const [contacts, setContacts] = useState([]);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [file, setFile] = useState(null);
+function ContactsPage() {
+  const [headers, setHeaders] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [emailColumn, setEmailColumn] = useState("");
+  const [extractedEmails, setExtractedEmails] = useState([]);
 
-  // Fetch contacts
+  const [listName, setListName] = useState("");
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const [lists, setLists] = useState([]);
+  const [loadingLists, setLoadingLists] = useState(false);
+  const [errorLists, setErrorLists] = useState(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://localhost:4000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Failed to upload file");
+
+      const data = await res.json();
+      setHeaders(data.headers || []);
+      setRows(data.rows || []);
+      setEmailColumn("");
+      setExtractedEmails([]);
+      setSaveStatus(null);
+      setListName("");
+    } catch (err) {
+      alert("Error uploading file: " + err.message);
+    }
+  };
+
+  const extractEmails = () => {
+    if (!emailColumn) {
+      alert("Please select an email column");
+      return;
+    }
+    const colIndex = headers.indexOf(emailColumn);
+    if (colIndex === -1) return;
+
+    const emails = rows
+      .map((row) => row[colIndex])
+      .filter((email) => email && email.toString().trim() !== "");
+    setExtractedEmails(emails);
+    setSaveStatus(null);
+  };
+
+  const saveList = async () => {
+    if (!listName.trim()) {
+      alert("Please enter a list name");
+      return;
+    }
+    if (extractedEmails.length === 0) {
+      alert("No emails to save");
+      return;
+    }
+
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const res = await fetch("http://localhost:4000/api/contact-lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: listName.trim(),
+          emails: extractedEmails,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to save contact list");
+      }
+
+      setSaveStatus("List saved successfully!");
+      setExtractedEmails([]);
+      setListName("");
+      setHeaders([]);
+      setRows([]);
+      fetchLists();
+    } catch (err) {
+      setSaveStatus("Error: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fetchLists = async () => {
+    setLoadingLists(true);
+    setErrorLists(null);
+    try {
+      const res = await fetch("http://localhost:4000/api/contact-lists");
+      if (!res.ok) throw new Error("Failed to fetch contact lists");
+      const data = await res.json();
+      setLists(data.lists || []);
+    } catch (err) {
+      setErrorLists(err.message);
+    } finally {
+      setLoadingLists(false);
+    }
+  };
+
   useEffect(() => {
-    axios.get('http://localhost:4000/contacts')
-      .then(response => setContacts(response.data))
-      .catch(error => console.error('Error fetching contacts', error));
+    fetchLists();
   }, []);
 
-  // Add contact
-  const addContact = () => {
-    axios.post('http://localhost:4000/contacts', { name, email })
-      .then(response => {
-        setContacts([...contacts, { name, email }]);
-        setName('');
-        setEmail('');
-      })
-      .catch(error => console.error('Error adding contact', error));
-  };
-
-  // Delete contact
-  const deleteContact = (id) => {
-    axios.delete(`http://localhost:4000/contacts/${id}`)
-      .then(response => {
-        setContacts(contacts.filter(contact => contact.id !== id));
-      })
-      .catch(error => console.error('Error deleting contact', error));
-  };
-
-  // Edit contact
-  const editContact = (id) => {
-    const updatedName = prompt('Enter new name');
-    const updatedEmail = prompt('Enter new email');
-    axios.put(`http://localhost:4000/contacts/${id}`, { name: updatedName, email: updatedEmail })
-      .then(response => {
-        setContacts(contacts.map(contact => contact.id === id ? { id, name: updatedName, email: updatedEmail } : contact));
-      })
-      .catch(error => console.error('Error editing contact', error));
-  };
-
-  // Handle CSV upload
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
-
-  const handleFileUpload = () => {
-    const formData = new FormData();
-    formData.append('file', file);
-    axios.post('http://localhost:4000/contacts/upload-csv', formData)
-      .then(response => alert('CSV Uploaded'))
-      .catch(error => console.error('Error uploading CSV', error));
-  };
-
   return (
-    <div>
-      <h1>Contacts</h1>
-      
-      {/* Add Contact */}
-      <input 
-        type="text" 
-        placeholder="Name" 
-        value={name} 
-        onChange={(e) => setName(e.target.value)} 
+    <div className="contacts-page">
+      <h2>Upload Excel/CSV File & Extract Emails</h2>
+      <input
+        type="file"
+        accept=".csv,.xls,.xlsx"
+        onChange={handleFile}
+        className="file-input"
       />
-      <input 
-        type="email" 
-        placeholder="Email" 
-        value={email} 
-        onChange={(e) => setEmail(e.target.value)} 
-      />
-      <button onClick={addContact}>Add Contact</button>
 
-      {/* CSV Upload */}
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleFileUpload}>Upload CSV</button>
+      {headers.length > 0 && (
+        <>
+          <label className="select-label">
+            Select Email Column:{" "}
+            <select
+              value={emailColumn}
+              onChange={(e) => setEmailColumn(e.target.value)}
+              className="select-dropdown"
+            >
+              <option value="">-- Select column --</option>
+              {headers.map((h, i) => (
+                <option key={i} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button onClick={extractEmails} className="extract-btn">
+            Extract Emails
+          </button>
+        </>
+      )}
 
-      <ul>
-        {contacts.map(contact => (
-          <li key={contact.id}>
-            {contact.name} ({contact.email})
-            <button onClick={() => editContact(contact.id)}>Edit</button>
-            <button onClick={() => deleteContact(contact.id)}>Delete</button>
-          </li>
-        ))}
-      </ul>
+      {extractedEmails.length > 0 && (
+        <div className="emails-preview">
+          <h3>Extracted Emails ({extractedEmails.length})</h3>
+          <ul>
+            {extractedEmails.map((email, i) => (
+              <li key={i}>{email}</li>
+            ))}
+          </ul>
+
+          <div className="list-input">
+            <input
+              type="text"
+              placeholder="Enter list name"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+            />
+            <button onClick={saveList} className="save-btn" disabled={saving}>
+              {saving ? "Saving..." : "Save List"}
+            </button>
+          </div>
+          {saveStatus && <p className="status-message">{saveStatus}</p>}
+        </div>
+      )}
+
+      <hr style={{ margin: "40px 0" }} />
+
+      <h2>Contact Lists</h2>
+      {loadingLists && <p>Loading contact lists...</p>}
+      {errorLists && <p className="error">Error: {errorLists}</p>}
+      {!loadingLists && lists.length === 0 && <p>No contact lists found.</p>}
+
+      {lists.map((list) => (
+        <div key={list.id} className="contact-list">
+          <h3>{list.name}</h3>
+          <p>{list.description}</p>
+          {list.contacts.length === 0 ? (
+            <p>
+              <i>No contacts in this list.</i>
+            </p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Extra Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.contacts.map((contact) => (
+                  <tr key={contact.id}>
+                    <td>{contact.name || "-"}</td>
+                    <td>{contact.email || "-"}</td>
+                    <td>{contact.phone || "-"}</td>
+                    <td>
+                      {contact.extra_data &&
+                      Object.keys(contact.extra_data).length > 0
+                        ? JSON.stringify(contact.extra_data)
+                        : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ))}
     </div>
   );
-};
+}
 
 export default ContactsPage;

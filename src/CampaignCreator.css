@@ -1,0 +1,107 @@
+.campaign-creator {
+  max-width: 800px;
+  margin: auto;
+  padding: 30px;
+  background: #ffffff;
+  font-family: 'Segoe UI', sans-serif;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.06);
+}
+
+h2 {
+  margin-bottom: 25px;
+  color: #333;
+}
+
+.input-field {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+.multi-select {
+  width: 100%;
+  height: 120px;
+  margin-bottom: 15px;
+  font-size: 15px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn {
+  padding: 10px 18px;
+  font-size: 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+}
+
+.primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.secondary {
+  background-color: #28a745;
+  color: white;
+}
+
+.primary:hover {
+  background-color: #0069d9;
+}
+
+.secondary:hover {
+  background-color: #218838;
+}
+
+.status-message {
+  margin-top: 20px;
+  font-size: 15px;
+  color: #2e7d32;
+}
+
+.template-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.template-btn {
+  padding: 6px 12px;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.template-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.btn.preview {
+  margin-top: 10px;
+  background-color: #ffc107;
+  color: #000;
+}
