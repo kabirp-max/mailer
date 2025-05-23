@@ -14,16 +14,6 @@ const cron = require('node-cron');
 const app = express();
 const port = process.env.PORT || 4000;
 
-
-
-
-// CORS
-// app.use(cors({
-//   origin: 'http://localhost:3000',
-//   methods: ['GET', 'POST', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-
 app.use(cors({
   origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -195,16 +185,44 @@ function generatePersonalizedHtml(html, email, subject) {
 
 // Schedule task every minute
 cron.schedule('* * * * *', async () => {
-  console.log('⏰ Checking for scheduled campaigns...');
+ console.log('⏰ Checking for scheduled campaigns...');
 
+  // Get all scheduled campaigns (not just due ones)
+  const [allScheduled] = await db.query(`
+    SELECT name, sending_time FROM campaigns
+    WHERE status = 'scheduled'
+  `);
+
+  const now = new Date();
+
+console.log(`🕒 Current UTC time: ${now.toISOString()}`);
+
+for (const campaign of allScheduled) {
+  const sendTime = new Date(campaign.sending_time);
+  console.log(`📬 Campaign "${campaign.name}" sending_time: ${sendTime.toISOString()}`);
+
+  const diffMs = sendTime - now;
+  const diffMin = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMin / 60);
+  const minutes = diffMin % 60;
+
+  if (diffMs > 0) {
+    console.log(`📅 "${campaign.name}" — will be sent in ${hours}h${minutes}min`);
+  } else {
+    console.log(`⏰ "${campaign.name}" is due or overdue by ${Math.abs(hours)}h${Math.abs(minutes)}min`);
+  }
+}
+
+  // Filter campaigns that need to be sent now
   const [campaigns] = await db.query(`
     SELECT * FROM campaigns
-    WHERE status = 'scheduled' AND sending_time <= NOW()
+    WHERE status = 'scheduled'
+      AND sending_time <= UTC_TIMESTAMP()
+      AND sending_time > UTC_TIMESTAMP() - INTERVAL 1 MINUTE
   `);
 
   for (const campaign of campaigns) {
     console.log(`📋 Found scheduled campaign: "${campaign.name}" scheduled at ${campaign.sending_time}`);
-
     try {
       // Fetch contact list IDs
       const [listLinks] = await db.query(
@@ -268,11 +286,16 @@ cron.schedule('* * * * *', async () => {
   }
 });
 
+function toMySQLDatetime(dateStringOrDateObj) {
+  const date = new Date(dateStringOrDateObj);
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
 
 
 // Send emails
 app.post('/api/campaigns/:id/send', async (req, res) => {
   const { id } = req.params;
+  
 
   try {
     // 1. Fetch campaign info
@@ -367,7 +390,6 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
     res.status(500).json({ error: 'Failed to send campaign' });
   }
 });
-
 
 
 
@@ -746,13 +768,13 @@ app.get('/api/campaigns/:id', async (req, res) => {
 
 app.put('/api/campaigns/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, subject, sender_name, html_content, sending_time, listIds = [] } = req.body;
-
+  const { name, subject, sender_name, html_content , sending_time, listIds = [] } = req.body;
+  const formattedDate = toMySQLDatetime(sending_time);
   try {
     // Update campaign info
     await db.query(
       `UPDATE campaigns SET name = ?, subject = ?, sender_name = ?, html_content = ?, sending_time = ? WHERE id = ?`,
-      [name, subject, sender_name, html_content, sending_time, id]
+      [name, subject, sender_name, html_content, formattedDate, id]
     );
 
     // Delete old list links
