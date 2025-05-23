@@ -31,15 +31,37 @@ export default function CampaignCreator() {
     setSelectedLists(options);
   };
 
-  const loadTemplate = async (filename) => {
-    try {
-      const res = await fetch(`http://localhost:4000/templates/${filename}`);
-      const html = await res.text();
-      setHtmlContent(html);
-    } catch (err) {
-      alert('Failed to load template');
-    }
-  };
+const loadTemplate = async (filename) => {
+  try {
+    const res = await fetch(`http://localhost:4000/templates/${filename}`);
+    let html = await res.text();
+
+    // Wrap content in a scaling div
+    html = `
+      <html>
+        <head>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              transform: scale(0.75);
+              transform-origin: top left;
+              width: 133.33%;
+              height: 133.33%;
+              overflow: hidden;
+            }
+          </style>
+        </head>
+        <body>${html}</body>
+      </html>
+    `;
+
+    setHtmlContent(html);
+  } catch (err) {
+    alert('Failed to load template');
+  }
+};
+
 
   const handleSubmit = async (send = false) => {
     setMessage('');
@@ -71,6 +93,8 @@ export default function CampaignCreator() {
     newWindow.document.write(htmlContent);
     newWindow.document.close();
   };
+
+  
 
   return (
     <div className="campaign-creator">
@@ -133,12 +157,33 @@ export default function CampaignCreator() {
       </div>
 
       <label>HTML Content:</label>
-      <textarea
+      {/* <textarea
         className="textarea"
         rows={10}
         value={htmlContent}
         onChange={(e) => setHtmlContent(e.target.value)}
-      />
+      /> */}
+      <label>HTML Content:</label>
+{/* Hide textarea and show preview instead */}
+{/* <textarea
+  className="textarea"
+  rows={10}
+  value={htmlContent}
+  onChange={(e) => setHtmlContent(e.target.value)}
+/> */}
+
+<div className="html-preview-frame">
+  {htmlContent ? (
+    <iframe
+      title="HTML Preview"
+      className="html-iframe"
+      srcDoc={htmlContent}
+    />
+  ) : (
+    <p className="placeholder">Select a template to preview it here.</p>
+  )}
+</div>
+
 
       <button className="btn preview" onClick={previewHtml}>
         Preview
