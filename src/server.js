@@ -286,10 +286,10 @@ for (const campaign of allScheduled) {
   }
 });
 
-function toMySQLDatetime(dateStringOrDateObj) {
-  const date = new Date(dateStringOrDateObj);
-  return date.toISOString().slice(0, 19).replace('T', ' ');
-}
+// function toMySQLDatetime(dateStringOrDateObj) {
+//   const date = new Date(dateStringOrDateObj);
+//   return date.toISOString().slice(0, 19).replace('T', ' ');
+// }
 
 
 // Send emails
@@ -497,57 +497,70 @@ app.get('/api/contact-lists', async (req, res) => {
 // Express route to save a contact list with emails
 app.post('/api/contact-lists', async (req, res) => {
   const { name, emails } = req.body;
-  console.log(name,emails);
-  
 
   if (!name || !emails || !Array.isArray(emails) || emails.length === 0) {
     return res.status(400).json({ error: 'List name and non-empty emails array required' });
   }
 
   try {
-    // Start transaction (optional, but recommended)
+    console.log('Starting transaction...');
     await db.query('START TRANSACTION');
 
-    // Insert into contact_lists table
-    const [result] = await db.query(
+    console.log('Inserting list...');
+    const [listResult] = await db.query(
       'INSERT INTO contact_lists (name) VALUES (?)',
       [name.trim()]
     );
-    const listId = result.insertId;
+    const listId = listResult.insertId;
+    console.log('List inserted with ID:', listId);
 
-    // Insert contacts one by one or in bulk
-    // Here bulk insert contacts (email only for now)
-    const contactsData = emails.map(email => [email.trim()]);
-    const [insertContactsResult] = await db.query(
-      'INSERT INTO contacts (email) VALUES ?',
-      [contactsData]
-    );
+    const contactIds = [];
 
-    // Get inserted contact IDs, MySQL returns insertId for first, and affectedRows count
-    const firstContactId = insertContactsResult.insertId;
-    const contactCount = insertContactsResult.affectedRows;
+    for (const email of emails) {
+      const trimmedEmail = email.trim();
+      console.log('Checking email:', trimmedEmail);
 
-    // Build list-contact mapping data
-    const mappings = [];
-    for (let i = 0; i < contactCount; i++) {
-      mappings.push([listId, firstContactId + i]);
+      const [existingContacts] = await db.query(
+        'SELECT id FROM contacts WHERE email = ?',
+        [trimmedEmail]
+      );
+
+      let contactId;
+
+      if (existingContacts.length > 0) {
+        contactId = existingContacts[0].id;
+        console.log('Existing contact found:', contactId);
+      } else {
+        const [insertResult] = await db.query(
+          'INSERT INTO contacts (email) VALUES (?)',
+          [trimmedEmail]
+        );
+        contactId = insertResult.insertId;
+        console.log('New contact inserted:', contactId);
+      }
+
+      contactIds.push(contactId);
     }
 
-    // Insert into mapping table
+    const mappings = contactIds.map(contactId => [listId, contactId]);
+    console.log('Inserting mappings:', mappings);
+
     await db.query(
-      'INSERT INTO contact_list_contacts (contact_list_id, contact_id) VALUES ?',
+      'INSERT IGNORE INTO contact_list_contacts (contact_list_id, contact_id) VALUES ?',
       [mappings]
     );
 
     await db.query('COMMIT');
+    console.log('Transaction committed.');
 
     res.json({ message: 'Contact list saved successfully', listId });
   } catch (err) {
-    await db.query('ROLLBACK');
     console.error('Error saving contact list:', err);
+    await db.query('ROLLBACK');
     res.status(500).json({ error: 'Failed to save contact list' });
   }
 });
+
 
 // POST /api/contact-lists/:listId/contacts
 app.post('/api/contact-lists/:listId/contacts', async (req, res) => {
@@ -766,6 +779,14 @@ app.get('/api/campaigns/:id', async (req, res) => {
 
 
 
+function toMySQLDatetime(localString) {
+  const date = new Date(localString); // Treat input as local time
+  const offset = date.getTimezoneOffset(); // in minutes
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+
 app.put('/api/campaigns/:id', async (req, res) => {
   const { id } = req.params;
   const { name, subject, sender_name, html_content , sending_time, listIds = [] } = req.body;
@@ -834,6 +855,38 @@ app.put('/api/campaigns/:id', async (req, res) => {
 //   const content = fs.readFileSync(filePath, 'utf8');
 //   res.send(content);
 // });
+
+
+// POST /api/public-html
+app.post('/api/public-html', async (req, res) => {
+  const { html_content, name = 'Untitled Template' } = req.body;
+
+  if (!html_content) {
+    return res.status(400).json({ error: 'HTML content is required' });
+  }
+
+  try {
+    const [result] = await db.query(
+      'INSERT INTO email_templates (name, html_content) VALUES (?, ?)',
+      [name, html_content]
+    );
+    return res.json({ id: result.insertId });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Database error' });
+  }
+});
+
+app.get('/htmlPages/:id', async (req, res) => {
+  console.log('hell');
+  
+  const { id } = req.params;
+  const [rows] = await db.query('SELECT html_content FROM email_templates WHERE id = ?', [id]);
+  if (!rows.length) return res.status(404).send('Template not found');
+
+  res.set('Content-Type', 'text/html');
+  res.send(rows[0].html_content);
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

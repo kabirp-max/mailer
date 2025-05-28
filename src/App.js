@@ -11,6 +11,8 @@ import CampaignsPage from './Campaigns';
 import CampaignCreator from './CampaignCreator';
 import CampaignView from './CampaignView';
 import { useState } from 'react';
+import EmailBuilder from './MailEditor';
+import ContactListDetails from './ContactListDetails';
 
 
 export default function App() {
@@ -27,8 +29,9 @@ export default function App() {
             </button>
           </div>
           <nav className="nav-links">
-            <Link to="/">📤 Email Sender</Link>
+            {/* <Link to="/">📤 Email Sender</Link> */}
             <Link to="/builder">🧱 Mail Builder</Link>
+            <Link to="/edit">🧱 Scratch Mail Builder</Link>
             <Link to="/contacts">👥 Contacts</Link>
             <Link to="/opens">📬 Opens</Link>
             <Link to="/bounces">📨 Bounces</Link>
@@ -39,7 +42,7 @@ export default function App() {
 
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<EmailSender />} />
+            <Route path="/" element={<CampaignsPage />} />
             <Route path="/builder" element={<MailBuilder />} />
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/opens" element={<EmailOpens />} />
@@ -49,6 +52,9 @@ export default function App() {
             <Route path="/campaigns/:id" element={<CampaignView />} />
             <Route path="/unlayer" element={<UnlayerEditor />} />
             <Route path="/mj" element={<MJMLEditor />} />
+            <Route path="/edit" element={<EmailBuilder />} />
+                    <Route path="/contacts/:listId" element={<ContactListDetails />} />
+
           </Routes>
         </main>
       </div>

@@ -156,7 +156,6 @@ const loadTemplate = async (filename) => {
         ))}
       </div>
 
-      <label>HTML Content:</label>
       {/* <textarea
         className="textarea"
         rows={10}

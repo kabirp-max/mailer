@@ -7,6 +7,65 @@ export default function CampaignView() {
   const [campaign, setCampaign] = useState(null);
   const [lists, setLists] = useState([]);
   const [message, setMessage] = useState('');
+  const [opens, setOpens] = useState([]);
+  const [publicLink, setPublicLink] = useState('');
+
+ const generatePublicLink = async () => {
+  setMessage('');
+  try {
+    const res = await fetch('http://localhost:4000/api/public-html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        html_content: campaign.html_content,
+  name: campaign.name || 'Untitled Template',
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to generate link');
+
+    const publicUrl = `http://localhost:4000/htmlPages/${data.id}`;
+    setPublicLink(publicUrl);
+    setMessage('✅ Link generated successfully!');
+  } catch (err) {
+    setMessage(`❌ ${err.message}`);
+  }
+};
+
+
+
+  useEffect(() => {
+  async function fetchCampaignAndOpens() {
+    try {
+      const campaignRes = await fetch(`http://localhost:4000/api/campaigns/${id}`);
+      const campaignData = await campaignRes.json();
+      setCampaign(campaignData.campaign);
+
+      const listRes = await fetch('http://localhost:4000/api/contact-lists');
+      const listData = await listRes.json();
+      setLists(listData.lists || []);
+
+      const opensRes = await fetch('https://track.techresearchcenter.com/api/opens');
+      const opensData = await opensRes.json();
+
+      // Now safely filter with the known subject
+      const matching = opensData.filter(open => open.subject === campaignData.campaign.subject);
+      console.log(matching);
+      
+      const uniqueMatchingEmails = [...new Set(matching.map(open => open.email))];
+      console.log(uniqueMatchingEmails);
+
+
+      setOpens(uniqueMatchingEmails);
+      
+    } catch (err) {
+      console.error('Failed to fetch campaign or opens:', err);
+    }
+  }
+
+  fetchCampaignAndOpens();
+}, [id]);
 
   useEffect(() => {
     fetch(`http://localhost:4000/api/campaigns/${id}`)
@@ -124,9 +183,47 @@ export default function CampaignView() {
         <button className="btn secondary" onClick={sendCampaign}>
           Send
         </button>
+        <button className="btn secondary" onClick={generatePublicLink}>
+  Generate Public Link
+</button>
       </div>
 
       {message && <p className="status-message">{message}</p>}
+
+       
+
+{publicLink && (
+  <p className="public-link">
+    🌐 Public Link: <a href={publicLink} target="_blank" rel="noopener noreferrer">{publicLink}</a>
+  </p>
+)}
+
+
+      {opens.length > 0 && (
+  <div className="opens-section">
+    <h3>Email Opens ({opens.length})</h3>
+    <table className="opens-table" style={{'display': 'none'}}>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Opened At</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {opens.map((open, i) => (
+          <tr key={i}>
+            <td>{open.email}</td>
+            <td>{new Date(open.openTime).toLocaleString()}</td>
+            <td>{open.ip}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+
+  </div>
+)}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./ContactsPage.css";
+import { Link } from "react-router-dom";
 
 function ContactsPage() {
   const [headers, setHeaders] = useState([]);
@@ -102,7 +103,9 @@ function ContactsPage() {
     try {
       const res = await fetch("http://localhost:4000/api/contact-lists");
       if (!res.ok) throw new Error("Failed to fetch contact lists");
+      
       const data = await res.json();
+      console.log(data);
       setLists(data.lists || []);
     } catch (err) {
       setErrorLists(err.message);
@@ -175,47 +178,32 @@ function ContactsPage() {
       <hr style={{ margin: "40px 0" }} />
 
       <h2>Contact Lists</h2>
-      {loadingLists && <p>Loading contact lists...</p>}
-      {errorLists && <p className="error">Error: {errorLists}</p>}
-      {!loadingLists && lists.length === 0 && <p>No contact lists found.</p>}
+{loadingLists && <p>Loading contact lists...</p>}
+{errorLists && <p className="error">Error: {errorLists}</p>}
+{!loadingLists && lists.length === 0 && <p>No contact lists found.</p>}
 
+{lists.length > 0 && (
+  <table className="contact-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Contacts</th>
+      </tr>
+    </thead>
+    <tbody>
       {lists.map((list) => (
-        <div key={list.id} className="contact-list">
-          <h3>{list.name}</h3>
-          <p>{list.description}</p>
-          {list.contacts.length === 0 ? (
-            <p>
-              <i>No contacts in this list.</i>
-            </p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Extra Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.contacts.map((contact) => (
-                  <tr key={contact.id}>
-                    <td>{contact.name || "-"}</td>
-                    <td>{contact.email || "-"}</td>
-                    <td>{contact.phone || "-"}</td>
-                    <td>
-                      {contact.extra_data &&
-                      Object.keys(contact.extra_data).length > 0
-                        ? JSON.stringify(contact.extra_data)
-                        : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <tr key={list.id}>
+          <td>
+            <Link to={`/contacts/${list.id}`} className="list-link">
+              {list.name}
+            </Link>
+          </td>
+          <td>{list.contacts.length}</td>
+        </tr>
       ))}
+    </tbody>
+  </table>
+)}
     </div>
   );
 }

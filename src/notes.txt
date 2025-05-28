@@ -1,4 +1,5 @@
 static mailer link
+
 in-campaign opens and bounces
 scheduling - cron
 mail builder
