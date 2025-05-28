@@ -96,3 +96,14 @@ label {
   font-size: 18px;
   color: #888;
 }
+
+.send-options {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.send-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

@@ -10,6 +10,7 @@ const multer = require('multer');
 const storage = multer.memoryStorage(); // Store file in memory (useful for parsing Excel in memory)
 const upload = multer({ storage });
 const cron = require('node-cron');
+const { log } = require('console');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -163,7 +164,7 @@ app.get('/api/opens', (req, res) => {
 });
 
 // Reuse the same generatePersonalizedHtml function
-function generatePersonalizedHtml(html, email, subject) {
+function generatePersonalizedHtml(html, email, subject, campaignId) {
   const sentTime = new Date().toISOString();
   const uniqueId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   const footer = `
@@ -176,6 +177,7 @@ function generatePersonalizedHtml(html, email, subject) {
     .replace(/{{email}}/g, email)
     .replace(/{{subject}}/g, subject)
     .replace(/{{sentTime}}/g, sentTime)
+    .replace(/{{campaignId}}/g, campaignId)
     .replace(/{{someId}}/g, uniqueId);
 
   return htmlWithReplacements.includes('</body>')
@@ -258,7 +260,8 @@ for (const campaign of allScheduled) {
           const personalizedHtml = generatePersonalizedHtml(
             campaign.html_content,
             email,
-            campaign.subject
+            campaign.subject,
+            campaign.id
           );
 
           try {
@@ -339,7 +342,7 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
     }
 
     // ✅ 4. Generate personalized HTML function
-    const generatePersonalizedHtml = (html, email, subject) => {
+    const generatePersonalizedHtml = (html, email, subject,campaignId) => {
       const sentTime = new Date().toISOString();
       const uniqueId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -347,6 +350,7 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
         .replace(/{{email}}/g, email)
         .replace(/{{subject}}/g, subject)
         .replace(/{{sentTime}}/g, sentTime)
+        .replace(/{{campaignId}}/g, campaignId)
         .replace(/{{someId}}/g, uniqueId);
     };
 
@@ -356,7 +360,8 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
         const personalizedMessage = generatePersonalizedHtml(
           campaign.html_content,
           email,
-          campaign.subject
+          campaign.subject,
+          campaign.id
         );
 
         try {
@@ -377,6 +382,9 @@ app.post('/api/campaigns/:id/send', async (req, res) => {
 
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     const failureCount = results.filter(r => r.status === 'rejected').length;
+
+    // ✅ Update campaign status to 'sent'
+await db.query('UPDATE campaigns SET status = ? WHERE id = ?', ['sent', id]);
 
     res.json({
       success: true,
@@ -676,6 +684,7 @@ app.get('/api/campaigns', async (req, res) => {
       c.sending_time,
       c.opens,
       c.delivered,
+      c.status,
       c.bounces,
       c.created_at,
       cl.id AS list_id,
@@ -701,6 +710,7 @@ app.get('/api/campaigns', async (req, res) => {
           sender_name: row.sender_name,
           sending_time: row.sending_time,
           opens: row.opens,
+          status: row.status,
           delivered: row.delivered,
           bounces: row.bounces,
           created_at: row.created_at,
@@ -789,13 +799,27 @@ function toMySQLDatetime(localString) {
 
 app.put('/api/campaigns/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, subject, sender_name, html_content , sending_time, listIds = [] } = req.body;
-  const formattedDate = toMySQLDatetime(sending_time);
+  const {
+    name,
+    subject,
+    sender_name,
+    html_content,
+    sending_time,
+    listIds = []
+  } = req.body;
+
+  const formattedDate = sending_time ? toMySQLDatetime(sending_time) : null;
+  const status = sending_time ? 'scheduled' : 'draft'; // or 'sent' if needed
+  console.log(sending_time);
+  
+
   try {
     // Update campaign info
     await db.query(
-      `UPDATE campaigns SET name = ?, subject = ?, sender_name = ?, html_content = ?, sending_time = ? WHERE id = ?`,
-      [name, subject, sender_name, html_content, formattedDate, id]
+      `UPDATE campaigns
+       SET name = ?, subject = ?, sender_name = ?, html_content = ?, sending_time = ?, status = ?
+       WHERE id = ?`,
+      [name, subject, sender_name, html_content, formattedDate, status, id]
     );
 
     // Delete old list links
@@ -803,7 +827,10 @@ app.put('/api/campaigns/:id', async (req, res) => {
 
     // Insert new list links
     for (const listId of listIds) {
-      await db.query('INSERT INTO campaign_contact_lists (campaign_id, contact_list_id) VALUES (?, ?)', [id, listId]);
+      await db.query(
+        'INSERT INTO campaign_contact_lists (campaign_id, contact_list_id) VALUES (?, ?)',
+        [id, listId]
+      );
     }
 
     res.json({ success: true });
@@ -812,6 +839,7 @@ app.put('/api/campaigns/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update campaign' });
   }
 });
+
 
 
 // app.post('/api/campaigns/:id/send', async (req, res) => {
@@ -887,6 +915,146 @@ app.get('/htmlPages/:id', async (req, res) => {
   res.set('Content-Type', 'text/html');
   res.send(rows[0].html_content);
 });
+
+
+
+app.get('/api/email-opens', async (req, res) => {
+  const sql = `
+    SELECT 
+      eo.campaign_id,
+      c.subject,
+      eo.email,
+      eo.opened_at
+    FROM email_opens eo
+    LEFT JOIN campaigns c ON eo.campaign_id = c.id
+    ORDER BY eo.campaign_id, eo.opened_at;
+  `;
+
+  try {
+    const [rows] = await db.query(sql);
+
+    const campaigns = [];
+    let currentCampaignId = null;
+    let currentCampaign = null;
+
+    for (const row of rows) {
+      if (row.campaign_id !== currentCampaignId) {
+        if (currentCampaign) campaigns.push(currentCampaign);
+        currentCampaignId = row.campaign_id;
+        currentCampaign = {
+          campaign_id: row.campaign_id,
+          subject: row.subject,
+          opens: [],
+        };
+      }
+
+      currentCampaign.opens.push({
+        email: row.email,
+        opened_at: row.opened_at,
+      });
+    }
+
+    if (currentCampaign) campaigns.push(currentCampaign);
+
+    res.json({ campaigns });
+  } catch (error) {
+    console.error('Error fetching email opens:', error);
+    res.status(500).json({ error: 'Failed to fetch email opens' });
+  }
+});
+
+app.get('/api/email-unsubscribes', async (req, res) => {
+  const sql = `
+    SELECT 
+      eu.campaign_id,
+      c.subject,
+      eu.email,
+      eu.unsubscribed_at
+    FROM email_unsubscribes eu
+    LEFT JOIN campaigns c ON eu.campaign_id = c.id
+    ORDER BY eu.campaign_id, eu.unsubscribed_at;
+  `;
+
+  try {
+    const [rows] = await db.query(sql);
+
+    const campaigns = [];
+    let currentCampaignId = null;
+    let currentCampaign = null;
+
+    for (const row of rows) {
+      if (row.campaign_id !== currentCampaignId) {
+        if (currentCampaign) campaigns.push(currentCampaign);
+        currentCampaignId = row.campaign_id;
+        currentCampaign = {
+          campaign_id: row.campaign_id,
+          subject: row.subject,
+          unsubscribes: [],
+        };
+      }
+
+      currentCampaign.unsubscribes.push({
+        email: row.email,
+        unsubscribed_at: row.unsubscribed_at,
+      });
+    }
+
+    if (currentCampaign) campaigns.push(currentCampaign);
+
+    res.json({ campaigns });
+  } catch (error) {
+    console.error('Error fetching email unsubscribes:', error);
+    res.status(500).json({ error: 'Failed to fetch email unsubscribes' });
+  }
+});
+
+app.get('/api/email-clicks', async (req, res) => {
+  const sql = `
+    SELECT 
+      ec.campaign_id,
+      c.subject,
+      ec.email,
+      ec.url,
+      ec.clicked_at
+    FROM email_clicks ec
+    LEFT JOIN campaigns c ON ec.campaign_id = c.id
+    ORDER BY ec.campaign_id, ec.clicked_at;
+  `;
+
+  try {
+    const [rows] = await db.query(sql);
+
+    const campaigns = [];
+    let currentCampaignId = null;
+    let currentCampaign = null;
+
+    for (const row of rows) {
+      if (row.campaign_id !== currentCampaignId) {
+        if (currentCampaign) campaigns.push(currentCampaign);
+        currentCampaignId = row.campaign_id;
+        currentCampaign = {
+          campaign_id: row.campaign_id,
+          subject: row.subject,
+          clicks: [],
+        };
+      }
+
+      currentCampaign.clicks.push({
+        email: row.email,
+        url: row.url,
+        clicked_at: row.clicked_at,
+      });
+    }
+
+    if (currentCampaign) campaigns.push(currentCampaign);
+
+    res.json({ campaigns });
+  } catch (error) {
+    console.error('Error fetching email clicks:', error);
+    res.status(500).json({ error: 'Failed to fetch email clicks' });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

@@ -7,74 +7,90 @@ export default function CampaignView() {
   const [campaign, setCampaign] = useState(null);
   const [lists, setLists] = useState([]);
   const [message, setMessage] = useState('');
-  const [opens, setOpens] = useState([]);
   const [publicLink, setPublicLink] = useState('');
+  const [stats, setStats] = useState({
+    opens: 0,
+    clicks: 0,
+    unsubscribes: 0,
+    openDetails: [],
+    clickDetails: [],
+    unsubscribeDetails: [],
+  });
 
- const generatePublicLink = async () => {
-  setMessage('');
-  try {
-    const res = await fetch('http://localhost:4000/api/public-html', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        html_content: campaign.html_content,
-  name: campaign.name || 'Untitled Template',
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to generate link');
-
-    const publicUrl = `http://localhost:4000/htmlPages/${data.id}`;
-    setPublicLink(publicUrl);
-    setMessage('✅ Link generated successfully!');
-  } catch (err) {
-    setMessage(`❌ ${err.message}`);
-  }
-};
-
-
-
-  useEffect(() => {
-  async function fetchCampaignAndOpens() {
+  const generatePublicLink = async () => {
+    setMessage('');
     try {
-      const campaignRes = await fetch(`http://localhost:4000/api/campaigns/${id}`);
-      const campaignData = await campaignRes.json();
-      setCampaign(campaignData.campaign);
+      const res = await fetch('http://localhost:4000/api/public-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          html_content: campaign.html_content,
+          name: campaign.name || 'Untitled Template',
+        }),
+      });
 
-      const listRes = await fetch('http://localhost:4000/api/contact-lists');
-      const listData = await listRes.json();
-      setLists(listData.lists || []);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to generate link');
 
-      const opensRes = await fetch('https://track.techresearchcenter.com/api/opens');
-      const opensData = await opensRes.json();
-
-      // Now safely filter with the known subject
-      const matching = opensData.filter(open => open.subject === campaignData.campaign.subject);
-      console.log(matching);
-      
-      const uniqueMatchingEmails = [...new Set(matching.map(open => open.email))];
-      console.log(uniqueMatchingEmails);
-
-
-      setOpens(uniqueMatchingEmails);
-      
+      const publicUrl = `http://localhost:4000/htmlPages/${data.id}`;
+      setPublicLink(publicUrl);
+      setMessage('✅ Link generated successfully!');
     } catch (err) {
-      console.error('Failed to fetch campaign or opens:', err);
+      setMessage(`❌ ${err.message}`);
     }
-  }
+  };
 
-  fetchCampaignAndOpens();
-}, [id]);
+  const fetchCampaignStats = async (campaignId) => {
+    try {
+      const [opensRes, clicksRes, unsubRes] = await Promise.all([
+        fetch('http://localhost:4000/api/email-opens'),
+        fetch('http://localhost:4000/api/email-clicks'),
+        fetch('http://localhost:4000/api/email-unsubscribes'),
+      ]);
+
+      if (!opensRes.ok || !clicksRes.ok || !unsubRes.ok) {
+        throw new Error('One or more tracking endpoints returned an error');
+      }
+
+      const opensData = await opensRes.json();
+      const clicksData = await clicksRes.json();
+      const unsubData = await unsubRes.json();
+
+      const opensCampaign = opensData.campaigns.find(c => c.campaign_id === campaignId);
+      const clicksCampaign = clicksData.campaigns.find(c => c.campaign_id === campaignId);
+      const unsubCampaign = unsubData.campaigns.find(c => c.campaign_id === campaignId);
+
+      setStats({
+        opens: opensCampaign?.opens?.length || 0,
+        clicks: clicksCampaign?.clicks?.length || 0,
+        unsubscribes: unsubCampaign?.unsubscribes?.length || 0,
+        openDetails: opensCampaign?.opens || [],
+        clickDetails: clicksCampaign?.clicks || [],
+        unsubscribeDetails: unsubCampaign?.unsubscribes || [],
+      });
+    } catch (error) {
+      console.error('Error fetching campaign stats:', error);
+    }
+  };
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/campaigns/${id}`)
-      .then((res) => res.json())
-      .then((data) => setCampaign(data.campaign));
+    async function fetchCampaignAndLists() {
+      try {
+        const campaignRes = await fetch(`http://localhost:4000/api/campaigns/${id}`);
+        const campaignData = await campaignRes.json();
+        setCampaign(campaignData.campaign);
 
-    fetch('http://localhost:4000/api/contact-lists')
-      .then((res) => res.json())
-      .then((data) => setLists(data.lists || []));
+        const listRes = await fetch('http://localhost:4000/api/contact-lists');
+        const listData = await listRes.json();
+        setLists(listData.lists || []);
+
+        fetchCampaignStats(campaignData.campaign.id);
+      } catch (err) {
+        console.error('Failed to fetch campaign/lists:', err);
+      }
+    }
+
+    fetchCampaignAndLists();
   }, [id]);
 
   const handleChange = (field, value) => {
@@ -146,13 +162,44 @@ export default function CampaignView() {
         onChange={(e) => handleChange('sender_name', e.target.value)}
       />
 
-      <label>Send At:</label>
-      <input
-        type="datetime-local"
-        className="input-field"
-        value={campaign.sending_time ? campaign.sending_time.slice(0, 16) : ''}
-        onChange={(e) => handleChange('sending_time', e.target.value)}
-      />
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Send Option:</label>
+
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <label>
+            <input
+              type="radio"
+              name="sendOption"
+              checked={!campaign.sending_time}
+              onChange={() => handleChange('sending_time', null)}
+            />{' '}
+            Send Now
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="sendOption"
+              checked={!!campaign.sending_time}
+              onChange={() =>
+                handleChange('sending_time', new Date().toISOString().slice(0, 16))
+              }
+            />{' '}
+            Schedule
+          </label>
+        </div>
+
+        {campaign.sending_time && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <input
+              type="datetime-local"
+              className="input-field"
+              value={campaign.sending_time.slice(0, 16)}
+              onChange={(e) => handleChange('sending_time', e.target.value)}
+            />
+          </div>
+        )}
+      </div>
 
       <label>Select Lists:</label>
       <select
@@ -177,53 +224,42 @@ export default function CampaignView() {
       />
 
       <div className="button-group">
-        <button className="btn primary" onClick={saveCampaign}>
-          Save
-        </button>
-        <button className="btn secondary" onClick={sendCampaign}>
-          Send
-        </button>
+        <button className="btn primary" onClick={saveCampaign}>Save</button>
+        {!campaign.sending_time && (
+          <button
+            className="btn secondary"
+            onClick={sendCampaign}
+            disabled={campaign.status === 'sent'}
+            title={campaign.status === 'sent' ? 'Campaign already sent' : ''}
+          >
+            {campaign.status === 'sent' ? 'Sent' : 'Send'}
+          </button>
+        )}
         <button className="btn secondary" onClick={generatePublicLink}>
-  Generate Public Link
-</button>
+          Generate Public Link
+        </button>
       </div>
 
       {message && <p className="status-message">{message}</p>}
 
-       
+      {publicLink && (
+        <p className="public-link">
+          🌐 Public Link:{' '}
+          <a href={publicLink} target="_blank" rel="noopener noreferrer">
+            {publicLink}
+          </a>
+        </p>
+      )}
 
-{publicLink && (
-  <p className="public-link">
-    🌐 Public Link: <a href={publicLink} target="_blank" rel="noopener noreferrer">{publicLink}</a>
-  </p>
-)}
-
-
-      {opens.length > 0 && (
-  <div className="opens-section">
-    <h3>Email Opens ({opens.length})</h3>
-    <table className="opens-table" style={{'display': 'none'}}>
-      <thead>
-        <tr>
-          <th>Email</th>
-          <th>Opened At</th>
-          <th>IP</th>
-        </tr>
-      </thead>
-      <tbody>
-        {opens.map((open, i) => (
-          <tr key={i}>
-            <td>{open.email}</td>
-            <td>{new Date(open.openTime).toLocaleString()}</td>
-            <td>{open.ip}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-
-
-  </div>
-)}
+      {/* 📊 Display Email Stats */}
+      <div className="stats-section">
+        <h3>📈 Campaign Stats</h3>
+        <ul>
+          <li><strong>Opens:</strong> {stats.opens}</li>
+          <li><strong>Clicks:</strong> {stats.clicks}</li>
+          <li><strong>Unsubscribes:</strong> {stats.unsubscribes}</li>
+        </ul>
+      </div>
     </div>
   );
 }

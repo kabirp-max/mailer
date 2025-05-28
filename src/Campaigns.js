@@ -11,6 +11,8 @@ function CampaignsPage() {
       .then((res) => res.json())
       .then((data) => {
         setCampaigns(data.campaigns || []);
+        console.log(data.campaigns);
+        
         setLoading(false);
       })
       .catch((err) => {
@@ -33,12 +35,13 @@ function CampaignsPage() {
               <tr>
                 <th>Name</th>
                 <th>Subject</th>
-                <th>Sender</th>
+                <th>Status</th>
+                {/* <th>Sender</th>
                 <th>Lists</th>
                 <th>Sending Time</th>
                 <th>Opens</th>
                 <th>Delivered</th>
-                <th>Bounces</th>
+                <th>Bounces</th> */}
                 <th>Created At</th>
               </tr>
             </thead>
@@ -51,7 +54,8 @@ function CampaignsPage() {
                     </Link>
                   </td>
                   <td>{campaign.subject}</td>
-                  <td>{campaign.sender_name}</td>
+                  <td>{campaign.status}</td>
+                  {/* <td>{campaign.sender_name}</td>
                   <td>
                     {campaign.lists.map((list) => (
                       <div key={list.id}>{list.name}</div>
@@ -64,7 +68,7 @@ function CampaignsPage() {
                   </td>
                   <td>{campaign.opens}</td>
                   <td>{campaign.delivered}</td>
-                  <td>{campaign.bounces}</td>
+                  <td>{campaign.bounces}</td> */}
                   <td>{new Date(campaign.created_at).toLocaleString()}</td>
                 </tr>
               ))}

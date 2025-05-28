@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Hello {{name}}!</h1>
+    <p>We hope you're enjoying your experience.</p>
+
+    <!-- CTA Link -->
+    <p>
+      <a href="https://track.techresearchcenter.com/track/click?email={{email}}&campaign_id={{campaignId}}&url=https://example.com"
+         target="_blank">Click here to visit our website</a>
+    </p>
+
+    <!-- Unsubscribe Link -->
+    <p>
+      <a href="https://track.techresearchcenter.com/track/unsubscribe?email={{email}}&campaign_id={{campaignId}}">Unsubscribe</a>
+    </p>
+
+    <!-- Invisible tracking pixel for open tracking -->
+    <img
+      src="https://track.techresearchcenter.com/track/open?email={{email}}&campaign_id={{campaignId}}"
+      width="1"
+      height="1"
+      style="display: none; max-width: 1px;"
+      alt="open-tracker"
+    />
+
+    <!-- Example logo -->
+    <img
+      src="https://techintelpro.com/Landing-Pages/Box%20Form/Seismic_logo_Horizontal_FullColor_Dawn-Dusk.jpg"
+      height="100px"
+      style="display: block;"
+      alt="Seismic Logo"
+    />
+  </body>
+</html>

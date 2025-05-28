@@ -30,13 +30,13 @@ export default function App() {
           </div>
           <nav className="nav-links">
             {/* <Link to="/">📤 Email Sender</Link> */}
+            <Link to="/campaigns">📊 Campaigns</Link>
+            <Link to="/contacts">👥 Contacts</Link>
+            <Link to="/campaign-creator">🛠️ Campaign Creator</Link>
             <Link to="/builder">🧱 Mail Builder</Link>
             <Link to="/edit">🧱 Scratch Mail Builder</Link>
-            <Link to="/contacts">👥 Contacts</Link>
-            <Link to="/opens">📬 Opens</Link>
-            <Link to="/bounces">📨 Bounces</Link>
-            <Link to="/campaigns">📊 Campaigns</Link>
-            <Link to="/campaign-creator">🛠️ Campaign Creator</Link>
+            {/* <Link to="/opens">📬 Opens</Link>
+            <Link to="/bounces">📨 Bounces</Link> */}
           </nav>
         </aside>
 
