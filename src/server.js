@@ -187,7 +187,7 @@ function generatePersonalizedHtml(html, email, subject, campaignId) {
 
 // Schedule task every minute
 cron.schedule('* * * * *', async () => {
- console.log('⏰ Checking for scheduled campaigns...');
+//  console.log('⏰ Checking for scheduled campaigns...');
 
   // Get all scheduled campaigns (not just due ones)
   const [allScheduled] = await db.query(`
@@ -197,7 +197,7 @@ cron.schedule('* * * * *', async () => {
 
   const now = new Date();
 
-console.log(`🕒 Current UTC time: ${now.toISOString()}`);
+// console.log(`🕒 Current UTC time: ${now.toISOString()}`);
 
 for (const campaign of allScheduled) {
   const sendTime = new Date(campaign.sending_time);
@@ -209,9 +209,9 @@ for (const campaign of allScheduled) {
   const minutes = diffMin % 60;
 
   if (diffMs > 0) {
-    console.log(`📅 "${campaign.name}" — will be sent in ${hours}h${minutes}min`);
+    // console.log(`📅 "${campaign.name}" — will be sent in ${hours}h${minutes}min`);
   } else {
-    console.log(`⏰ "${campaign.name}" is due or overdue by ${Math.abs(hours)}h${Math.abs(minutes)}min`);
+    // console.log(`⏰ "${campaign.name}" is due or overdue by ${Math.abs(hours)}h${Math.abs(minutes)}min`);
   }
 }
 

@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
+
+
 // ToolboxItem (unchanged)
 const ToolboxItem = ({ type, label }) => {
   const [{ isDragging }, dragRef] = useDrag(() => ({
@@ -27,6 +29,37 @@ const ToolboxItem = ({ type, label }) => {
     </div>
   )
 }
+
+const renderTextWithLinks = (content = '') => {
+  const regex = /<a href="(.*?)">(.*?)<\/a>/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    const [fullMatch, href, linkText] = match;
+    const start = match.index;
+
+    if (start > lastIndex) {
+      parts.push(content.slice(lastIndex, start));
+    }
+
+    parts.push(
+      <a key={start} href={href} target="_blank" rel="noopener noreferrer">
+        {linkText}
+      </a>
+    );
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts;
+};
+
 
 const Canvas = ({ components, onDrop, onSelect, selectedIndex }) => {
   const [dropIndex, setDropIndex] = React.useState(null)
@@ -87,60 +120,87 @@ const Canvas = ({ components, onDrop, onSelect, selectedIndex }) => {
       }}
     >
       {components.map((comp, index) => (
-        <React.Fragment key={index}>
-          {/* Drop indicators */}
-          {dropIndex === index && dropPosition === 'before' && (
-            <div style={{ height: 4, backgroundColor: 'blue', margin: '4px 0' }} />
-          )}
+  <React.Fragment key={index}>
+    {/* Drop indicators */}
+    {dropIndex === index && dropPosition === 'before' && (
+      <div style={{ height: 4, backgroundColor: 'blue', margin: '4px 0' }} />
+    )}
 
-          <div
-            className="canvas-item"
-            style={{
-              padding: '4px 0',
-              cursor: 'pointer',
-              border: selectedIndex === index ? '2px solid #007bff' : 'none',
-              backgroundColor: selectedIndex === index ? '#e6f0ff' : 'transparent',
-            }}
-            onClick={() => onSelect(index)}
-          >
-            {(() => {
-              switch (comp.type) {
-                case 'text':
-                  return <p style={{ margin: 0 }}>{comp.content || 'This is a text block'}</p>
-                case 'image':
-                  return (
-                    <img
-                      src={comp.src || 'https://via.placeholder.com/300x100'}
-                      alt="placeholder"
-                      style={{ display: 'block', margin: '8px 0', maxWidth: '100%' }}
-                    />
-                  )
-                case 'button':
-                  return (
-                    <button
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: comp.color || '#007bff',
-                        color: comp.textColor || 'white',
-                        border: 'none',
-                        margin: '6px 0',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {comp.label || 'Click Me'}
-                    </button>
-                  )
-                default:
-                  return null
-              }
-            })()}
-          </div>
+    <div
+      className="canvas-item"
+      style={{
+        padding: '4px 0',
+        cursor: 'pointer',
+        border: selectedIndex === index ? '2px solid #007bff' : 'none',
+        backgroundColor: selectedIndex === index ? '#e6f0ff' : 'transparent',
+      }}
+      onClick={() => onSelect(index)}
+    >
+      {(() => {
+        const commonStyle = {
+          padding: comp.padding !== undefined ? `${comp.padding}px` : '10px',
 
-          {dropIndex === index && dropPosition === 'after' && (
-            <div style={{ height: 4, backgroundColor: 'blue', margin: '4px 0' }} />
-          )}
-        </React.Fragment>
-      ))}
+          textAlign: comp.align || 'left',
+          fontSize: comp.fontSize || '16px',
+          
+        };
+
+        switch (comp.type) {
+          case 'text':
+            return (
+              <p
+                style={{
+                  margin: 0,
+                  fontWeight: comp.bold ? 'bold' : 'normal',
+                  ...commonStyle,
+                }}
+              >
+                {renderTextWithLinks(comp.content || 'This is a text block')}
+              </p>
+            );
+          case 'image':
+            return (
+              <img
+                src={comp.src || 'https://via.placeholder.com/300x100'}
+                alt="placeholder"
+                style={{
+                  display: 'block',
+                  margin: '8px 0',
+                  maxWidth: '100%',
+                  width: comp.width+'px' || 'auto',
+          height: comp.height+'px' || 'auto',
+                  ...commonStyle,
+                }}
+              />
+            );
+          case 'button':
+            return (
+              <button
+                style={{
+                  ...commonStyle,
+                  backgroundColor: comp.color || '#007bff',
+                  color: comp.textColor || 'white',
+                  border: 'none',
+                  padding: comp.padding|| '10px',
+                  margin: '6px 0',
+                  cursor: 'pointer',
+                }}
+              >
+                {comp.label || 'Click Me'}
+              </button>
+            );
+          default:
+            return null;
+        }
+      })()}
+    </div>
+
+    {dropIndex === index && dropPosition === 'after' && (
+      <div style={{ height: 4, backgroundColor: 'blue', margin: '4px 0' }} />
+    )}
+  </React.Fragment>
+))}
+
       {dropIndex === components.length && (
         <div style={{ height: 4, backgroundColor: 'blue', margin: '4px 0' }} />
       )}
@@ -154,13 +214,13 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
       <div style={{ padding: 16 }}>
         <p>Select an element to see properties</p>
       </div>
-    )
+    );
   }
 
-  // Helper for text input change
-  const handleChange = (key) => (e) => {
-    onChange({ ...component, [key]: e.target.value })
-  }
+  const handleChange = (key, type = 'text') => (e) => {
+    const value = type === 'checkbox' ? e.target.checked : e.target.value;
+    onChange({ ...component, [key]: value });
+  };
 
   return (
     <div style={{ padding: 16, borderLeft: '1px solid #ccc', width: 300 }}>
@@ -176,7 +236,43 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
               style={{ width: '100%', height: 80, marginTop: 4 }}
             />
           </label>
+
+          <label>
+  Padding:
+  <input
+    type="text"
+    value={component.padding || '10px'}
+    onChange={handleChange('padding')}
+    style={{ width: '100%', marginTop: 4 }}
+  />
+</label>
+
+<label>
+  Text Align:
+  <select
+    value={component.align || 'left'}
+    onChange={handleChange('align')}
+    style={{ width: '100%', marginTop: 4 }}
+  >
+    <option value="left">Left</option>
+    <option value="center">Center</option>
+    <option value="right">Right</option>
+  </select>
+
+  <label>
+    Font Size:
+    <input
+      type="text"
+      value={component.fontSize || '16px'}
+      onChange={handleChange('fontSize')}
+      style={{ width: '100%', marginTop: 4 }}
+    />
+  </label>  
+</label>
+
+
         </>
+
       )}
 
       {component.type === 'image' && (
@@ -190,6 +286,51 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
               style={{ width: '100%', marginTop: 4 }}
             />
           </label>
+          <label>
+  Padding:
+  <input
+    type="number"
+    value={component.padding || '10'}
+    onChange={handleChange('padding')}
+    style={{ width: '100%', marginTop: 4 }}
+  />
+</label>
+
+{/*  */}
+
+
+          <label>
+  Height:
+  <input
+    type="number"
+    value={component.height || '10'}
+    onChange={handleChange('height')}
+    style={{ width: '100%', marginTop: 4 }}
+  />
+</label>
+
+          <label>
+  Width:
+  <input
+    type="number"
+    value={component.width || '10'}
+    onChange={handleChange('width')}
+    style={{ width: '100%', marginTop: 4 }}
+  />
+</label>
+
+<label>
+  Text Align:
+  <select
+    value={component.align || 'left'}
+    onChange={handleChange('align')}
+    style={{ width: '100%', marginTop: 4 }}
+  >
+    <option value="left">Left</option>
+    <option value="center">Center</option>
+    <option value="right">Right</option>
+  </select>
+</label>
         </>
       )}
 
@@ -222,6 +363,42 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
               style={{ width: '100%', marginTop: 4 }}
             />
           </label>
+
+          <label>
+  Padding:
+  <input
+    type="text"
+    value={component.padding || '10px'}
+    onChange={handleChange('padding')}
+    style={{ width: '100%', marginTop: 4 }}
+  />
+</label>
+
+<label>
+  Text Align:
+  <select
+    value={component.align || 'left'}
+    onChange={handleChange('align')}
+    style={{ width: '100%', marginTop: 4 }}
+  >
+    <option value="left">Left</option>
+    <option value="center">Center</option>
+    <option value="right">Right</option>
+  </select>
+</label>
+
+{(component.type === 'text' || component.type === 'button') && (
+  <label>
+    Font Size:
+    <input
+      type="text"
+      value={component.fontSize || '16px'}
+      onChange={handleChange('fontSize')}
+      style={{ width: '100%', marginTop: 4 }}
+    />
+  </label>
+)}
+
         </>
       )}
 
@@ -246,29 +423,33 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
 const EmailBuilder = () => {
   const [components, setComponents] = useState([])
   const [selectedIndex, setSelectedIndex] = useState(null)
+  
 
   const handleDrop = (item, index) => {
-    setComponents((prev) => {
-      const newComponents = [...prev]
-      // Add default properties depending on type
-      let newItem = { type: item.type }
-      switch (item.type) {
-        case 'text':
-          newItem.content = 'This is a text block'
-          break
-        case 'image':
-          newItem.src = 'https://via.placeholder.com/300x100'
-          break
-        case 'button':
-          newItem.label = 'Click Me'
-          newItem.color = '#007bff'
-          newItem.textColor = '#ffffff'
-          break
-      }
-      newComponents.splice(index, 0, newItem)
-      return newComponents
-    })
-  }
+  setComponents((prev) => {
+    const newComponents = [...prev]
+    let newItem = { type: item.type, padding: '10px', align: 'left' }
+
+    switch (item.type) {
+      case 'text':
+        newItem.content = 'This is a text block'
+        newItem.fontSize = '16px'
+        break
+      case 'image':
+        newItem.src = 'https://via.placeholder.com/300x100'
+        break
+      case 'button':
+        newItem.label = 'Click Me'
+        newItem.color = '#007bff'
+        newItem.textColor = '#ffffff'
+        newItem.fontSize = '16px'
+        break
+    }
+    newComponents.splice(index, 0, newItem)
+    return newComponents
+  })
+}
+
 
   const handleSelect = (index) => {
     setSelectedIndex(index)
@@ -311,6 +492,8 @@ const EmailBuilder = () => {
         }
       })
       .join('\n')
+      console.log(html);
+      
     alert(html)
   }
 
