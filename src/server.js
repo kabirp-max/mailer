@@ -31,9 +31,6 @@ app.use(cors(corsOptions));
 
 // app.options('*', cors());
 
-
-
-
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -95,18 +92,21 @@ app.post('/render', (req, res) => {
  
 });
 
+
+
+
 // Email open tracking route
 app.get('/track/open', (req, res) => {
+  
   const { email = 'unknown', subject = 'unknown', sent: sentTime = 'unknown', id = 'none' } = req.query;
 
   const openTime = new Date().toISOString();
-
-  // Get the real IP address
   const ip =
     req.headers['x-forwarded-for']?.split(',')[0].trim() ||
     req.connection?.remoteAddress ||
     req.socket?.remoteAddress ||
     req.ip;
+  const userAgent = req.headers['user-agent'] || 'unknown';
 
   const logEntry = {
     id,
@@ -114,15 +114,29 @@ app.get('/track/open', (req, res) => {
     subject,
     sentTime,
     openTime,
-    ip
+    ip,
+    userAgent
   };
 
-  // Append the log to a file
-  fs.appendFile(logFilePath, JSON.stringify(logEntry) + '\n', err => {
-    if (err) console.error('Failed to write log:', err);
-  });
+  // Known bot user agents
+  const botUserAgents = ['GoogleImageProxy', 'Thunderbird', 'AppleWebKit', 'Outlook'];
+  const isBot = botUserAgents.some(bot => userAgent.includes(bot));
 
-  // Return a 1x1 transparent PNG
+  // Time filter (optional)
+  const delay = new Date(openTime) - new Date(sentTime);
+  const tooSoon = !isNaN(delay) && delay < 10000;
+
+  if (isBot || tooSoon) {
+    fs.appendFile('bot-opens.log', JSON.stringify(logEntry) + '\n', err => {
+      if (err) console.error('Failed to write bot log:', err);
+    });
+  } else {
+    fs.appendFile('real-opens.log', JSON.stringify(logEntry) + '\n', err => {
+      if (err) console.error('Failed to write log:', err);
+    });
+  }
+
+  // Transparent 1x1 pixel
   const imgBuffer = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAr8B9WM9vKcAAAAASUVORK5CYII=',
     'base64'
@@ -137,6 +151,7 @@ app.get('/track/open', (req, res) => {
   });
   res.end(imgBuffer);
 });
+
 
 // Fetch open logs
 app.get('/api/opens', (req, res) => {
@@ -905,6 +920,7 @@ app.post('/api/public-html', async (req, res) => {
   }
 });
 
+
 app.get('/htmlPages/:id', async (req, res) => {
   console.log('hell');
   
@@ -915,7 +931,6 @@ app.get('/htmlPages/:id', async (req, res) => {
   res.set('Content-Type', 'text/html');
   res.send(rows[0].html_content);
 });
-
 
 
 app.get('/api/email-opens', async (req, res) => {
@@ -937,22 +952,25 @@ app.get('/api/email-opens', async (req, res) => {
     let currentCampaignId = null;
     let currentCampaign = null;
 
-    for (const row of rows) {
-      if (row.campaign_id !== currentCampaignId) {
-        if (currentCampaign) campaigns.push(currentCampaign);
-        currentCampaignId = row.campaign_id;
-        currentCampaign = {
-          campaign_id: row.campaign_id,
-          subject: row.subject,
-          opens: [],
-        };
-      }
+   for (const row of rows) {
+  if (row.campaign_id == null) continue; // skip bad rows
 
-      currentCampaign.opens.push({
-        email: row.email,
-        opened_at: row.opened_at,
-      });
-    }
+  if (row.campaign_id !== currentCampaignId) {
+    if (currentCampaign) campaigns.push(currentCampaign);
+    currentCampaignId = row.campaign_id;
+    currentCampaign = {
+      campaign_id: row.campaign_id,
+      subject: row.subject,
+      opens: [],
+    };
+  }
+
+  currentCampaign.opens.push({
+    email: row.email,
+    opened_at: row.opened_at,
+  });
+}
+
 
     if (currentCampaign) campaigns.push(currentCampaign);
 

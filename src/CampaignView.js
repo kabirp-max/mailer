@@ -48,7 +48,10 @@ export default function CampaignView() {
         fetch('http://localhost:4000/api/email-unsubscribes'),
       ]);
 
+
       if (!opensRes.ok || !clicksRes.ok || !unsubRes.ok) {
+        console.log(opensRes);
+        
         throw new Error('One or more tracking endpoints returned an error');
       }
 
@@ -56,10 +59,13 @@ export default function CampaignView() {
       const clicksData = await clicksRes.json();
       const unsubData = await unsubRes.json();
 
+      
+      
       const opensCampaign = opensData.campaigns.find(c => c.campaign_id === campaignId);
       const clicksCampaign = clicksData.campaigns.find(c => c.campaign_id === campaignId);
       const unsubCampaign = unsubData.campaigns.find(c => c.campaign_id === campaignId);
-
+      
+      console.log(opensCampaign);
       setStats({
         opens: opensCampaign?.opens?.length || 0,
         clicks: clicksCampaign?.clicks?.length || 0,

@@ -3,7 +3,6 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
 
-
 // ToolboxItem (unchanged)
 const ToolboxItem = ({ type, label }) => {
   const [{ isDragging }, dragRef] = useDrag(() => ({
@@ -169,10 +168,33 @@ const Canvas = ({ components, onDrop, onSelect, selectedIndex }) => {
                   maxWidth: '100%',
                   width: comp.width+'px' || 'auto',
           height: comp.height+'px' || 'auto',
+          borderRadius : comp.borderRadius+'px' || '1px',
                   ...commonStyle,
                 }}
               />
             );
+           case 'list':
+  return (
+    <ul
+      style={{
+        margin: 0,
+        fontWeight: comp.bold ? 'bold' : 'normal',
+        ...commonStyle,
+      }}
+    >
+      {(comp.items && comp.items.length > 0
+        ? comp.items
+        : ['Item One', 'Item Two', 'Item Three']
+      ).map((item, idx) => (
+        <li key={idx}>{item}</li>
+      ))}
+    </ul>
+  );
+
+            case 'anchor':
+              return (
+                <a href='#'>Link</a>
+              )
           case 'button':
             return (
               <button
@@ -269,29 +291,37 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
     />
   </label>  
 </label>
-
-
-        </>
+</>
 
       )}
 
       {component.type === 'image' && (
         <>
-          <label>
-            Image URL:
-            <input
-              type="text"
-              value={component.src || ''}
-              onChange={handleChange('src')}
-              style={{ width: '100%', marginTop: 4 }}
-            />
-          </label>
-          <label>
+  <label>
+    Image URL:
+    <input
+      type="text"
+      value={component.src || ''}
+      onChange={handleChange('src')}
+      style={{ width: '100%', marginTop: 4 }}
+    />
+  </label>
+  <label>
   Padding:
   <input
     type="number"
     value={component.padding || '10'}
     onChange={handleChange('padding')}
+    style={{ width: '100%', marginTop: 4 }}
+  />
+</label>
+
+  <label>
+  Border Radius:
+  <input
+    type="number"
+    value={component.borderRadius || '10'}
+    onChange={handleChange('borderRadius')}
     style={{ width: '100%', marginTop: 4 }}
   />
 </label>
@@ -309,7 +339,7 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
   />
 </label>
 
-          <label>
+<label>
   Width:
   <input
     type="number"
@@ -402,6 +432,24 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
         </>
       )}
 
+     {component.type === 'list' && (
+  <>
+    <label>No of Items</label>
+    <input
+      type="number"
+      value={component.items?.length || 3}
+      onChange={(e) => {
+        const count = parseInt(e.target.value) || 0;  
+        const newItems = Array.from({ length: count }, (_, i) => `Item ${i + 1}`);
+        // Bypass handleChange and call onChange directly with updated items array
+        onChange({ ...component, items: newItems });
+      }}
+    />
+  </>
+)}
+
+
+
       <button
         onClick={onDelete}
         style={{
@@ -437,6 +485,10 @@ const EmailBuilder = () => {
         break
       case 'image':
         newItem.src = 'https://via.placeholder.com/300x100'
+        break
+      case 'list':
+        newItem.content = 'This is a text block'
+        newItem.fontSize = '16px'
         break
       case 'button':
         newItem.label = 'Click Me'
@@ -479,6 +531,8 @@ const EmailBuilder = () => {
         switch (comp.type) {
           case 'text':
             return `<p>${comp.content || 'This is a text block'}</p>`
+          case 'list':
+            return `<p>${comp.content || 'This is a text block'}</p>`
           case 'image':
             return `<img src="${comp.src || 'https://via.placeholder.com/300x100'}" alt="placeholder" />`
           case 'button':
@@ -514,6 +568,8 @@ const EmailBuilder = () => {
           <ToolboxItem type="text" label="Text" />
           <ToolboxItem type="image" label="Image" />
           <ToolboxItem type="button" label="Button" />
+          <ToolboxItem type="list" label="List" />
+          <ToolboxItem type="anchor" label="Anchor" />
         </div>
 
         {/* Email canvas */}
@@ -542,3 +598,9 @@ const EmailBuilder = () => {
 }
 
 export default EmailBuilder
+
+/*
+
+
+
+*/

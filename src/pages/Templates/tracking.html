@@ -16,13 +16,24 @@
     </p>
 
     <!-- Invisible tracking pixel for open tracking -->
-    <img
+    <!-- <img
       src="https://track.techresearchcenter.com/track/open?email={{email}}&campaign_id={{campaignId}}"
       width="1"
       height="1"
       style="display: none; max-width: 1px;"
       alt="open-tracker"
-    />
+    /> -->
+    <img
+  src="https://track.techresearchcenter.com/track/open?email={{email}}&campaign_id={{campaignId}}&subject={{subject}}&sent_at={{sentAt}}"
+  width="1"
+  height="1"
+  style="display: block; max-width: 1px; min-height: 1px; opacity: 0;"
+  alt="open-tracker"
+  loading="eager"
+  referrerpolicy="no-referrer"
+/>
+
+
 
     <!-- Example logo -->
     <img

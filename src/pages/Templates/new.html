@@ -11,13 +11,22 @@
         <td align="center" bgcolor="#0073e6" style="padding: 20px 0; color: #ffffff; font-size: 24px; font-weight: bold;">
           Tech Research Center
         </td>
-        <img 
+        <!-- <img 
       src="https://track.techresearchcenter.com/track/open?email={{email}}&subject={{subject}}&sent={{sentTime}}&id={{someId}}" 
       width="1" 
       height="1" 
       style="display: none; max-width: 1px;" 
       alt="tracker"
-    />
+    /> -->
+  <img
+  src="https://track.techresearchcenter.com/track/open?email={{email}}&campaign_id={{campaignId}}&subject={{subject}}&sent_at={{sentAt}}"
+  width="1"
+  height="1"
+  style="display: block; max-width: 1px; min-height: 1px; opacity: 0;"
+  alt="open-tracker"
+  loading="eager"
+  referrerpolicy="no-referrer"
+/>
       </tr>
       <tr>
         <td style="padding: 20px;">

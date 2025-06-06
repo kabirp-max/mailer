@@ -6,14 +6,22 @@
     <p>This is a test email with a tracking pixel.</p>
 
     <!-- Invisible tracking pixel -->
-    <img 
+    <!-- <img 
       src="https://track.techresearchcenter.com/track/open?email={{email}}&subject={{subject}}&sent={{sentTime}}&id={{someId}}" 
       width="1" 
       height="1" 
       style="display: none; max-width: 1px;" 
       alt="tracker"
-    />
-
+    /> -->
+<img
+  src="https://track.techresearchcenter.com/track/open?email={{email}}&campaign_id={{campaignId}}&subject={{subject}}&sent_at={{sentAt}}"
+  width="1"
+  height="1"
+  style="display: block; max-width: 1px; min-height: 1px; opacity: 0;"
+  alt="open-tracker"
+  loading="eager"
+  referrerpolicy="no-referrer"
+/>
     <!-- Example logo image -->
     <img 
       src="https://techintelpro.com/Landing-Pages/Box%20Form/Seismic_logo_Horizontal_FullColor_Dawn-Dusk.jpg" 
