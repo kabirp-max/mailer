@@ -39,6 +39,7 @@ const loadTemplate = async (filename) => {
 
     // Wrap content in a scaling div
     html = `
+
       <html>
         <head>
           <style>
@@ -57,6 +58,7 @@ const loadTemplate = async (filename) => {
       </html>
     `;
 
+
     setHtmlContent(html);
   } catch (err) {
     alert('Failed to load template');
@@ -73,11 +75,11 @@ const loadTemplate = async (filename) => {
         body: JSON.stringify({
           name,
           subject,
-          senderName,
-          htmlContent,
-          sendingTime,
-          listIds: selectedLists,
-          sendNow: send,
+          sender_name,
+          html_content,
+          sending_time,
+          list_ids: selectedLists,
+          send_now: send,
         }),
       });
 
@@ -93,6 +95,20 @@ const loadTemplate = async (filename) => {
     const newWindow = window.open('', '_blank');
     newWindow.document.write(htmlContent);
     newWindow.document.close();
+    newWindow.TrustedHTML = `
+        <html>
+            <head>
+                <title>Trusted HTML Page</title>
+            </head>
+            <h1>Hello</h1>
+            <p>This is jus a list of items :- </p>
+            <ul>
+                <li>List Item 1</li>
+                <li>List Item 2</li>
+                <li>List Item 3</li>
+            </ul>
+        </html>
+    `
   };
 
   
@@ -202,3 +218,10 @@ const loadTemplate = async (filename) => {
     </div>
   );
 }
+
+/**
+ * 
+
+a tylr - mrge, grade, maid, ex
+
+ */

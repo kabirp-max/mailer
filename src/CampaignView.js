@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import './CampaignView.css';
+import './styles/CampaignView.css';
 
 export default function CampaignView() {
   const { id } = useParams();
@@ -32,7 +32,7 @@ export default function CampaignView() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate link');
 
-      const publicUrl = `http://localhost:4000/htmlPages/${data.id}`;
+      const publicUrl = `http://localhost:4000/api/htmlPages/${data.id}`;
       setPublicLink(publicUrl);
       setMessage('✅ Link generated successfully!');
     } catch (err) {
@@ -228,6 +228,12 @@ export default function CampaignView() {
         value={campaign.html_content}
         onChange={(e) => handleChange('html_content', e.target.value)}
       />
+
+      {/* 
+      
+      
+      
+      */}
 
       <div className="button-group">
         <button className="btn primary" onClick={saveCampaign}>Save</button>

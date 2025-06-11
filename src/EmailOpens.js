@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import './EmailOpens.css';
+import './styles/EmailOpens.css';
 
 const EmailOpens = () => {
   const [opens, setOpens] = useState([]);

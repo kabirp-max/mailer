@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import "./ContactListDetails.css";
+import "./styles/ContactListDetails.css";
 
 function ContactListDetails() {
   const { listId } = useParams();

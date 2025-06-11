@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "./CampaignsPage.css";
+import "./styles/CampaignsPage.css";
 
 function CampaignsPage() {
   const [campaigns, setCampaigns] = useState([]);

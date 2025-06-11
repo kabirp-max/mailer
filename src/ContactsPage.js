@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./ContactsPage.css";
+import "./styles/ContactsPage.css";
 import { Link } from "react-router-dom";
 
 function ContactsPage() {

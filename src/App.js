@@ -3,7 +3,7 @@ import EmailSender from './pages/EmailSender';
 import MailBuilder from './pages/MailBuilder';
 import ContactsPage from './ContactsPage';
 import EmailOpens from './EmailOpens';
-import './Appp.css';
+import './styles/Appp.css';
 import UnlayerEditor from './pages/UnilayerEditor';
 import MJMLEditor from './pages/MJMLEditor';
 import EmailBounces from './pages/EmailBounces';
@@ -53,11 +53,42 @@ export default function App() {
             <Route path="/unlayer" element={<UnlayerEditor />} />
             <Route path="/mj" element={<MJMLEditor />} />
             <Route path="/edit" element={<EmailBuilder />} />
-                    <Route path="/contacts/:listId" element={<ContactListDetails />} />
-
+            <Route path="/contacts/:listId" element={<ContactListDetails />} />
           </Routes>
         </main>
       </div>
     </Router>
   );
 }
+
+
+/*
+
+
+75.119.141.210
+
+
+
+
+NEW
+
+
+Bw4nG78dRgci
+
+https://75.119.141.210:8443/
+
+/////////////////////////////
+
+First Name *
+Tony
+User Name *
+techresearchcenter.com
+Password *
+Last Name *
+Stark
+E-Mail *
+aryan.motwani@techintelpro.com
+Timezone *
+UTC
+
+*/
