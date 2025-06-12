@@ -111,6 +111,24 @@ const loadTemplate = async (filename) => {
     `
   };
 
+  const loadRes = () => {
+    return (
+      `
+      <html>
+        <h1>Heading 1</h1>
+        <p>abstract content</p>
+        <p>List of items -</p>
+        <ul>
+        <li>Item One</li>
+        <li>Item Two</li>
+        <li>Item Three </li>
+        </ul>
+        <button>Download Now</button>
+      </html>
+      `
+    )
+  }
+
   
 
   return (
@@ -153,6 +171,24 @@ const loadTemplate = async (filename) => {
         value={selectedLists}
         onChange={handleListChange}
       >
+        {lists.map((list) => (
+          <option key={list.id} value={list.id}>
+            {list.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className='mulit-select'
+        multiple
+        value={selectedLists}
+        onChange={handleListChange}
+      >
+        {lists.map((list) => (
+          <option key={list.id} value={list.id}>
+            {list.name}
+          </option>
+        ))}
         {lists.map((list) => (
           <option key={list.id} value={list.id}>
             {list.name}

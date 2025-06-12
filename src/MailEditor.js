@@ -425,6 +425,19 @@ const PropertiesPanel = ({ component, onChange, onDelete }) => {
               min="1"
             />
           </div>
+           <div className="mb-3">
+            <label htmlFor="align" className="block text-sm font-medium text-gray-700">Alignment:</label>
+            <select
+              id="align"
+              value={component.align || 'left'}
+              onChange={handleChange('align')}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
           <div className="mb-3">
             <label htmlFor="borderRadius" className="block text-sm font-medium text-gray-700">Border Radius (px):</label>
             <input

@@ -251,14 +251,11 @@ app.post('/campaigns/:id/send', async (req, res) => {
     .replace(/{{sentAt}}/g, encodedSentTime)
     .replace(/{{campaignId}}/g, encodedCampaignId)
     .replace(/{{someId}}/g, uniqueId);
-};
-
-
-    
-    
+};    
 
     // 5. Send emails
     const results = await Promise.all(
+
       emails.map(async (email) => {
         const personalizedMessage = generatePersonalizedHtml(
           campaign.html_content,

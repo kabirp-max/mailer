@@ -65,7 +65,8 @@ export default function CampaignView() {
       const clicksCampaign = clicksData.campaigns.find(c => c.campaign_id === campaignId);
       const unsubCampaign = unsubData.campaigns.find(c => c.campaign_id === campaignId);
       
-      console.log(opensCampaign);
+      // console.log(opensCampaign);
+      console.log(opensData);
       setStats({
         opens: opensCampaign?.opens?.length || 0,
         clicks: clicksCampaign?.clicks?.length || 0,
