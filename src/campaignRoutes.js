@@ -11,4 +11,17 @@ app.get('/api/templates', (req, res) => {
   });
 });
 
+app.delete('/campaigns/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await db.query('DELETE FROM campaigns WHERE id = ?', [id]);
+    res.json({ message: 'Campaign deleted' });
+  } catch (error) {
+    console.error('Error deleting campaign:', error);
+    res.status(500).json({ error: 'Failed to delete campaign' });
+  }
+});
+
+
 module.exports = app;

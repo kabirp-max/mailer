@@ -146,7 +146,6 @@ app.post('/contact-lists', async (req, res) => {
   }
 });
 
-
 // POST /contact-lists/:listId/contacts
 app.post('/contact-lists/:listId/contacts', async (req, res) => {
   const { listId } = req.params;
@@ -249,5 +248,54 @@ app.post('/contact-lists/upload', upload.single('file'), async (req, res) => {
     res.status(500).json({ error: 'Failed to upload list from Excel' });
   }
 });
+
+// DELETE /contact-lists/:id
+app.delete('/contact-lists/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Start transaction to ensure consistency
+    await db.query('START TRANSACTION');
+
+    // Delete mappings in junction table
+    await db.query('DELETE FROM contact_list_contacts WHERE contact_list_id = ?', [id]);
+
+    // Delete the list itself
+    const [result] = await db.query('DELETE FROM contact_lists WHERE id = ?', [id]);
+
+    await db.query('COMMIT');
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    res.json({ message: 'List deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting contact list:', err);
+    await db.query('ROLLBACK');
+    res.status(500).json({ error: 'Failed to delete contact list' });
+  }
+});
+
+// DELETE /contact-lists/:listId/contacts/:contactId
+app.delete('/contact-lists/:listId/contacts/:contactId', async (req, res) => {
+  const { listId, contactId } = req.params;
+
+  console.log('hello');
+  
+
+  try {
+    await db.query(
+      'DELETE FROM contact_list_contacts WHERE contact_list_id = ? AND contact_id = ?',
+      [listId, contactId]
+    );
+
+    res.json({ message: 'Contact removed from list' });
+  } catch (error) {
+    console.error('Error deleting contact from list:', error);
+    res.status(500).json({ error: 'Failed to delete contact from list' });
+  }
+});
+
 
 module.exports = app;
